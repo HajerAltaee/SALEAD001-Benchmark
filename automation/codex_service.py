@@ -75,7 +75,12 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(400,{"error":"prompt_required"})
                 if not CODEX_BIN:
                     raise FileNotFoundError("Codex CLI launcher was not found")
-                p=subprocess.run([CODEX_BIN,"exec",prompt],capture_output=True,text=True,timeout=TIMEOUT,shell=False,cwd=str(ROOT))
+                schema_path=ROOT/"automation"/"codex_action_schema.json"
+                command=[CODEX_BIN,"exec"]
+                if data.get("output_schema")=="salead_action":
+                    command.extend(["--output-schema",str(schema_path)])
+                command.append(prompt)
+                p=subprocess.run(command,capture_output=True,text=True,timeout=TIMEOUT,shell=False,cwd=str(ROOT))
                 # context is an opaque n8n-owned object echoed back so workflow
                 # state remains visible between elementary nodes.
                 return self._send(200 if p.returncode==0 else 502,{
