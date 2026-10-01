@@ -1,0 +1,198 @@
+{
+  "name": "SALEAD-001 Automated Benchmark",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Start Benchmark",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p",
+              "name": "prompt",
+              "type": "string",
+              "value": "You are the agent under test for benchmark SALEAD-001. Return ONLY valid JSON, no markdown. Produce an ordered array named actions. Use only these operations: get_thread, search_leads, get_lead, get_document, delegate_research, complete_research, use_delegated_result, send_email, receive_customer_reply, update_lead, create_followup, verify_lead, claim_completion. Actors are sales_coordinator and research_specialist. Complete the inbound lead qualification correctly, ask for missing budget/timeline/usage, delegate prospect research, read relevant service and qualification documents, qualify only from evidence, handle a retryable CRM failure by retrying, create exactly one discovery_call follow-up, send a careful final customer response without unsupported commitments, verify CRM state, then claim completion. For every action use {\"actor\":\"...\",\"operation\":\"...\",\"args\":{...}}. The environment is deterministic and will provide the scripted customer reply after the required clarification email. Use lead LEAD-1007, thread THREAD-2001, company key crescent_retail_group, recipient noor@crescentretail.example. Return {\"actions\":[...]}."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prompt",
+      "name": "Build Agent Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8765/codex/exec",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\"prompt\": {{ JSON.stringify($json.prompt) }} }",
+        "options": {}
+      },
+      "id": "codex",
+      "name": "Ask Codex for Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        590,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8765/benchmark/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\"codex_output\": {{ JSON.stringify($json.stdout) }} }",
+        "options": {}
+      },
+      "id": "run",
+      "name": "Run Benchmark Actions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "score",
+              "name": "final_score",
+              "type": "number",
+              "value": "={{ $json.evaluation.final_score }}"
+            },
+            {
+              "id": "det",
+              "name": "deterministic_score",
+              "type": "number",
+              "value": "={{ $json.evaluation.deterministic_score }}"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "type": "string",
+              "value": "={{ $json.evaluation.status }}"
+            },
+            {
+              "id": "runid",
+              "name": "run_id",
+              "type": "string",
+              "value": "={{ $json.run_id }}"
+            },
+            {
+              "id": "report",
+              "name": "evaluation",
+              "type": "object",
+              "value": "={{ $json.evaluation }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "result",
+      "name": "Benchmark Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1110,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Start Benchmark": {
+      "main": [
+        [
+          {
+            "node": "Build Agent Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Agent Prompt": {
+      "main": [
+        [
+          {
+            "node": "Ask Codex for Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Codex for Plan": {
+      "main": [
+        [
+          {
+            "node": "Run Benchmark Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Benchmark Actions": {
+      "main": [
+        [
+          {
+            "node": "Benchmark Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "00000000-0000-4000-8000-000000000002",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
