@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path: sys.path.insert(0,str(ROOT))
 from automation.benchmark_api import run_actions
+from automation.interactive_agent import run_interactive
 HOST=os.getenv("CODEX_SERVICE_HOST","0.0.0.0")
 PORT=int(os.getenv("CODEX_SERVICE_PORT","8765"))
 TIMEOUT=int(os.getenv("CODEX_TIMEOUT_SECONDS","900"))
@@ -27,6 +28,12 @@ class Handler(BaseHTTPRequestHandler):
                 if not CODEX_BIN: raise FileNotFoundError("Codex CLI launcher was not found")
                 p=subprocess.run([CODEX_BIN,"exec",prompt],capture_output=True,text=True,timeout=TIMEOUT,shell=False,cwd=str(ROOT))
                 return self._send(200 if p.returncode==0 else 502,{"ok":p.returncode==0,"exit_code":p.returncode,"stdout":p.stdout,"stderr":p.stderr})
+            if self.path=="/benchmark/interactive-run":
+                if not CODEX_BIN: raise FileNotFoundError("Codex CLI launcher was not found")
+                max_steps=data.get("max_steps",24)
+                if not isinstance(max_steps,int) or max_steps<1 or max_steps>40: return self._send(400,{"error":"max_steps_must_be_1_to_40"})
+                result=run_interactive(CODEX_BIN,str(ROOT),TIMEOUT,max_steps)
+                return self._send(200,result)
             if self.path=="/benchmark/run":
                 output=data.get("codex_output","")
                 if not isinstance(output,str) or not output.strip(): return self._send(400,{"error":"codex_output_required"})
