@@ -35,7 +35,48 @@
       ]
     },
     "args": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "thread_id": {
+          "type": "string"
+        },
+        "query": {
+          "type": "string"
+        },
+        "lead_id": {
+          "type": "string"
+        },
+        "document_id": {
+          "type": "string"
+        },
+        "assignee": {
+          "type": "string"
+        },
+        "company_key": {
+          "type": "string"
+        },
+        "delegation_id": {
+          "type": "string"
+        },
+        "recipient": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "changes": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
     }
   }
 }
