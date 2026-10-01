@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SALEAD Codex Action",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "actor",
+    "operation",
+    "args"
+  ],
+  "properties": {
+    "actor": {
+      "type": "string",
+      "enum": [
+        "sales_coordinator",
+        "research_specialist"
+      ]
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "get_thread",
+        "search_leads",
+        "get_lead",
+        "get_document",
+        "delegate_research",
+        "complete_research",
+        "use_delegated_result",
+        "send_email",
+        "receive_customer_reply",
+        "update_lead",
+        "create_followup",
+        "verify_lead",
+        "claim_completion"
+      ]
+    },
+    "args": {
+      "type": "object"
+    }
+  }
+}
