@@ -21,8 +21,6 @@ PORT=int(os.getenv("CODEX_SERVICE_PORT","8765"))
 TIMEOUT=int(os.getenv("CODEX_TIMEOUT_SECONDS","900"))
 CODEX_BIN=os.getenv("CODEX_BIN") or shutil.which("codex.cmd") or shutil.which("codex")
 
-# In-memory benchmark sessions. n8n owns orchestration; this service only keeps
-# the mock SALEAD environment alive between elementary HTTP calls.
 SESSIONS={}
 
 def _run_payload(env):
@@ -76,13 +74,22 @@ class Handler(BaseHTTPRequestHandler):
                 if not CODEX_BIN:
                     raise FileNotFoundError("Codex CLI launcher was not found")
                 schema_path=ROOT/"automation"/"codex_action_schema.json"
+                # IMPORTANT: pass the prompt through stdin, not as a Windows
+                # command-line argument. The n8n agent context grows every step
+                # and otherwise eventually exceeds Windows' command-line limit.
                 command=[CODEX_BIN,"exec"]
                 if data.get("output_schema")=="salead_action":
                     command.extend(["--output-schema",str(schema_path)])
-                command.append(prompt)
-                p=subprocess.run(command,capture_output=True,text=True,timeout=TIMEOUT,shell=False,cwd=str(ROOT))
-                # context is an opaque n8n-owned object echoed back so workflow
-                # state remains visible between elementary nodes.
+                command.append("-")
+                p=subprocess.run(
+                    command,
+                    input=prompt,
+                    capture_output=True,
+                    text=True,
+                    timeout=TIMEOUT,
+                    shell=False,
+                    cwd=str(ROOT),
+                )
                 return self._send(200 if p.returncode==0 else 502,{
                     "ok":p.returncode==0,
                     "exit_code":p.returncode,
@@ -91,7 +98,6 @@ class Handler(BaseHTTPRequestHandler):
                     "context":data.get("context"),
                 })
 
-            # V3 elementary API: n8n owns the loop.
             if self.path=="/benchmark/start":
                 run_id="RUN-N8N-"+uuid.uuid4().hex[:8].upper()
                 SESSIONS[run_id]=SalesLeadEnvironment(run_id)
@@ -130,7 +136,6 @@ class Handler(BaseHTTPRequestHandler):
                     "context":data.get("context"),
                 })
 
-            # V2 kept as a comparison/fallback.
             if self.path=="/benchmark/interactive-run":
                 if not CODEX_BIN:
                     raise FileNotFoundError("Codex CLI launcher was not found")
@@ -139,7 +144,6 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(400,{"error":"max_steps_must_be_1_to_40"})
                 return self._send(200,run_interactive(CODEX_BIN,str(ROOT),TIMEOUT,max_steps))
 
-            # V1 kept as a comparison/fallback.
             if self.path=="/benchmark/run":
                 output=data.get("codex_output","")
                 if not isinstance(output,str) or not output.strip():
