@@ -3,128 +3,84 @@
   "title": "SALEAD Codex Action",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "actor",
-    "operation",
-    "args"
-  ],
+  "required": ["actor", "operation", "args"],
   "properties": {
-    "actor": {
-      "type": "string",
-      "enum": [
-        "sales_coordinator",
-        "research_specialist"
-      ]
-    },
-    "operation": {
-      "type": "string",
-      "enum": [
-        "get_thread",
-        "search_leads",
-        "get_lead",
-        "get_document",
-        "delegate_research",
-        "complete_research",
-        "use_delegated_result",
-        "send_email",
-        "receive_customer_reply",
-        "update_lead",
-        "create_followup",
-        "verify_lead",
-        "claim_completion"
-      ]
-    },
+    "actor": {"type":"string","enum":["sales_coordinator","research_specialist"]},
+    "operation": {"type":"string","enum":["get_thread","search_leads","get_lead","get_document","delegate_research","complete_research","use_delegated_result","send_email","receive_customer_reply","update_lead","create_followup","verify_lead","claim_completion"]},
     "args": {
-      "type": "object",
-      "additionalProperties": false,
+      "type":"object",
+      "additionalProperties":false,
       "properties": {
-        "thread_id": {
-          "type": [
-            "string",
-            "null"
+        "thread_id":{"type":["string","null"]},
+        "query":{"type":["string","null"]},
+        "lead_id":{"type":["string","null"]},
+        "document_id":{"type":["string","null"]},
+        "assignee":{"type":["string","null"]},
+        "company_key":{"type":["string","null"]},
+        "delegation_id":{"type":["string","null"]},
+        "recipient":{"type":["string","null"]},
+        "body":{"type":["string","null"]},
+        "summary":{"type":["string","null"]},
+        "changes":{
+          "anyOf":[
+            {"type":"null"},
+            {
+              "type":"object",
+              "additionalProperties":false,
+              "properties":{
+                "status":{"type":["string","null"]},
+                "qualification":{
+                  "anyOf":[
+                    {"type":"null"},
+                    {
+                      "type":"object",
+                      "additionalProperties":false,
+                      "properties":{
+                        "service_fit":{"type":"boolean"},
+                        "business_need_identified":{"type":"boolean"},
+                        "authorized_contact":{"type":"boolean"},
+                        "budget_confirmed":{"type":"boolean"},
+                        "budget_meets_threshold":{"type":"boolean"},
+                        "timeline_confirmed":{"type":"boolean"},
+                        "timeline_acceptable":{"type":"boolean"},
+                        "integration_supported":{"type":"boolean"},
+                        "human_handoff_supported":{"type":"boolean"}
+                      },
+                      "required":["service_fit","business_need_identified","authorized_contact","budget_confirmed","budget_meets_threshold","timeline_confirmed","timeline_acceptable","integration_supported","human_handoff_supported"]
+                    }
+                  ]
+                },
+                "estimated_budget_aed":{"type":["number","null"]},
+                "timeline_weeks":{"type":["number","null"]},
+                "monthly_message_volume":{"type":["number","null"]},
+                "requirements":{"anyOf":[{"type":"null"},{"type":"array","items":{"type":"string"}}]},
+                "crm_platform":{"type":["string","null"]},
+                "next_action":{"type":["string","null"]},
+                "owner":{"type":["string","null"]},
+                "notes":{"anyOf":[{"type":"null"},{"type":"array","items":{"type":"string"}}]}
+              },
+              "required":["status","qualification","estimated_budget_aed","timeline_weeks","monthly_message_volume","requirements","crm_platform","next_action","owner","notes"]
+            }
           ]
         },
-        "query": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "lead_id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "document_id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "assignee": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "company_key": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "delegation_id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "recipient": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "body": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "summary": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "changes": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "data": {
-          "type": [
-            "string",
-            "null"
+        "data":{
+          "anyOf":[
+            {"type":"null"},
+            {
+              "type":"object",
+              "additionalProperties":false,
+              "properties":{
+                "lead_id":{"type":"string"},
+                "type":{"type":"string"},
+                "status":{"type":"string"},
+                "description":{"type":["string","null"]}
+              },
+              "required":["lead_id","type","status","description"]
+            }
           ]
         }
       },
-      "required": [
-        "thread_id",
-        "query",
-        "lead_id",
-        "document_id",
-        "assignee",
-        "company_key",
-        "delegation_id",
-        "recipient",
-        "body",
-        "summary",
-        "changes",
-        "data"
-      ]
+      "required":["thread_id","query","lead_id","document_id","assignee","company_key","delegation_id","recipient","body","summary","changes","data"]
     }
   }
 }
