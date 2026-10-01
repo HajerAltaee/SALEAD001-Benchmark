@@ -1,0 +1,494 @@
+{
+  "name": "SALEAD-001 V3 Decomposed n8n Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual",
+      "name": "Start Benchmark",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8765/benchmark/start",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "start",
+      "name": "Initialize SALEAD Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{run_id:$json.run_id,challenge_id:$json.challenge_id,step:0,max_steps:24,history:[],stop_reason:null}}];"
+      },
+      "id": "state",
+      "name": "Initialize n8n State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const s=$json; const step=(s.step||0)+1; const recent=(s.history||[]).slice(-12).map(h=>\"STEP \"+h.step+\" ACTION=\"+JSON.stringify(h.action)+\" RESULT=\"+JSON.stringify(h.result)).join(\"\\n\")||\"No actions yet.\"; const guide=[\"You are operating SALEAD-001. The benchmark is ALREADY RUNNING.\",\"Choose exactly ONE executable action now. Return ONLY one JSON object; no markdown or prose.\",\"Schema: {\\\"actor\\\":\\\"sales_coordinator\\\",\\\"operation\\\":\\\"OPERATION\\\",\\\"args\\\":{}}\",\"Operations: get_thread, search_leads, get_lead, get_document, delegate_research, complete_research, use_delegated_result, send_email, receive_customer_reply, update_lead, create_followup, verify_lead, claim_completion.\",\"Known resources: THREAD-2001; services/customer_support_agents; sales/qualification_policy; sales/communication_policy; crescent_retail_group.\",\"Read evidence, gather missing qualification data, delegate and use research, recover from retryable failures, create the discovery follow-up, and verify CRM state before completion.\",\"Execution history:\",recent,\"OUTPUT ONE JSON ACTION NOW.\"].join(\"\\n\"); return [{json:{prompt:guide,context:{run_id:s.run_id,step,max_steps:s.max_steps||24,history:s.history||[]}}}];"
+      },
+      "id": "prompt",
+      "name": "Build Agent Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8765/codex/exec",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ prompt: $json.prompt, context: $json.context }) }}",
+        "options": {
+          "timeout": 900000
+        }
+      },
+      "id": "codex",
+      "name": "Invoke Local Codex",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c=$json.context||{}; let raw=($json.stdout||\"\").trim(),action=null,err=null; try{if(raw.startsWith(\"```\")){let l=raw.split(/\\r?\\n/);l.shift();if(l.length&&l[l.length-1].trim().startsWith(\"```\"))l.pop();raw=l.join(\"\\n\").trim();if(raw.toLowerCase().startsWith(\"json\"))raw=raw.slice(4).trim();} action=JSON.parse(raw);if(!action||typeof action!==\"object\"||Array.isArray(action)||typeof action.operation!==\"string\")throw new Error(\"Expected one JSON action object\");}catch(e){err=e.message;} return [{json:{...c,action,raw_codex_output:$json.stdout||\"\",valid_action:!err,parse_error:err}}];"
+      },
+      "id": "parse",
+      "name": "Parse JSON Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "v",
+              "leftValue": "={{ $json.valid_action }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "valid",
+      "name": "Valid Action?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8765/benchmark/action",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ run_id: $json.run_id, action: $json.action, context: { step: $json.step, max_steps: $json.max_steps, history: $json.history } }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "exec",
+      "name": "Execute One SALEAD Tool",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c=$json.context||{};const entry={step:c.step,action:$json.action,result:$json.observation};const history=[...(c.history||[]),entry];return [{json:{run_id:$json.run_id,step:c.step,max_steps:c.max_steps||24,history,action:$json.action,observation:$json.observation,completed:$json.action?.operation===\"claim_completion\"&&$json.observation?.ok===true}}];"
+      },
+      "id": "record",
+      "name": "Record Observation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const history=[...($json.history||[]),{step:$json.step,action:{raw:$json.raw_codex_output},result:{ok:false,error:{error_code:\"INVALID_CODEX_ACTION\",message:$json.parse_error}}}];return [{json:{run_id:$json.run_id,step:$json.step,max_steps:$json.max_steps||24,history,completed:false}}];"
+      },
+      "id": "bad",
+      "name": "Record Format Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "d",
+              "leftValue": "={{ $json.completed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "done",
+      "name": "Completion Claimed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1980,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{...$json,stop_reason:\"completion_claimed\"}}];"
+      },
+      "id": "markdone",
+      "name": "Mark Completed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "l",
+              "leftValue": "={{ $json.step }}",
+              "rightValue": "={{ $json.max_steps }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "limit",
+      "name": "Step Limit Reached?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2200,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{...$json,stop_reason:\"max_steps\"}}];"
+      },
+      "id": "marklimit",
+      "name": "Mark Step Limit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8765/benchmark/evaluate",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ run_id: $json.run_id, context: { step: $json.step, history: $json.history, stop_reason: $json.stop_reason } }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "eval",
+      "name": "Evaluate Actual State",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c=$json.context||{};return [{json:{run_id:$json.run_id,mode:\"decomposed-n8n\",stop_reason:c.stop_reason,steps:c.step,deterministic_score:$json.evaluation?.deterministic_score,final_score:$json.evaluation?.final_score,status:$json.evaluation?.status,evaluation:$json.evaluation,trace:c.history||[],tool_calls:$json.tool_calls}}];"
+      },
+      "id": "result",
+      "name": "Benchmark Result + Trace",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        -140
+      ]
+    }
+  ],
+  "connections": {
+    "Start Benchmark": {
+      "main": [
+        [
+          {
+            "node": "Initialize SALEAD Run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize SALEAD Run": {
+      "main": [
+        [
+          {
+            "node": "Initialize n8n State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize n8n State": {
+      "main": [
+        [
+          {
+            "node": "Build Agent Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Agent Context": {
+      "main": [
+        [
+          {
+            "node": "Invoke Local Codex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoke Local Codex": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON Action": {
+      "main": [
+        [
+          {
+            "node": "Valid Action?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Action?": {
+      "main": [
+        [
+          {
+            "node": "Execute One SALEAD Tool",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record Format Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute One SALEAD Tool": {
+      "main": [
+        [
+          {
+            "node": "Record Observation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Observation": {
+      "main": [
+        [
+          {
+            "node": "Completion Claimed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Format Error": {
+      "main": [
+        [
+          {
+            "node": "Step Limit Reached?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Completion Claimed?": {
+      "main": [
+        [
+          {
+            "node": "Mark Completed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Step Limit Reached?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Completed": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Actual State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step Limit Reached?": {
+      "main": [
+        [
+          {
+            "node": "Mark Step Limit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Agent Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Step Limit": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Actual State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Actual State": {
+      "main": [
+        [
+          {
+            "node": "Benchmark Result + Trace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
