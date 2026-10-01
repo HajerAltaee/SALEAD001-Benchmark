@@ -74,8 +74,11 @@ qualify/update the existing CRM lead when justified, create the appropriate
 discovery follow-up, communicate with the customer, recover from tool failures,
 and verify actual state before completion.
 
-You choose ONE action at a time. After it executes, you will be called again
-with its real result. Do not output a future plan or an actions array."""
+THIS BENCHMARK IS ALREADY RUNNING. You are not waiting for more input.
+You MUST choose and output ONE executable action RIGHT NOW.
+Your response is machine-parsed. Output JSON only: no acknowledgement, no prose,
+no markdown, no explanation, and no future plan. After this action is executed,
+a fresh Codex invocation will receive the execution history and choose the next action."""
     if history:
         recent = "\n".join(
             f"STEP {h['step']} ACTION={_compact(h['action'], 1500)} RESULT={_compact(h['result'], 3500)}"
@@ -83,7 +86,7 @@ with its real result. Do not output a future plan or an actions array."""
         )
     else:
         recent = "No actions have been executed yet."
-    return task + "\n\n" + TOOL_GUIDE + "\nExecution history:\n" + recent + "\n\nChoose the single best next action now."
+    return task + "\n\n" + TOOL_GUIDE + "\nExecution history:\n" + recent + "\n\nOUTPUT THE SINGLE NEXT ACTION AS JSON NOW. DO NOT SAY READY OR ASK FOR INPUT."
 
 
 def _execute_one(env: SalesLeadEnvironment, action: dict[str, Any]) -> dict[str, Any]:
