@@ -39,44 +39,92 @@
       "additionalProperties": false,
       "properties": {
         "thread_id": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "query": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "lead_id": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "document_id": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "assignee": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "company_key": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "delegation_id": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "recipient": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "body": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "summary": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "changes": {
-          "type": "object",
-          "additionalProperties": true
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "data": {
-          "type": "object",
-          "additionalProperties": true
+          "type": [
+            "string",
+            "null"
+          ]
         }
-      }
+      },
+      "required": [
+        "thread_id",
+        "query",
+        "lead_id",
+        "document_id",
+        "assignee",
+        "company_key",
+        "delegation_id",
+        "recipient",
+        "body",
+        "summary",
+        "changes",
+        "data"
+      ]
     }
   }
 }
