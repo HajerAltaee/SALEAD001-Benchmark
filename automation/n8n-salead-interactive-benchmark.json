@@ -1,0 +1,136 @@
+{
+  "name": "SALEAD-001 Interactive Codex Benchmark",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start-interactive",
+      "name": "Start Interactive Benchmark",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8765/benchmark/interactive-run",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\"max_steps\":24}",
+        "options": {
+          "timeout": 900000
+        }
+      },
+      "id": "run-interactive",
+      "name": "Run Interactive Agent Loop",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "run-id",
+              "name": "run_id",
+              "value": "={{ $json.run_id }}",
+              "type": "string"
+            },
+            {
+              "id": "mode",
+              "name": "mode",
+              "value": "={{ $json.mode }}",
+              "type": "string"
+            },
+            {
+              "id": "stop",
+              "name": "stop_reason",
+              "value": "={{ $json.stop_reason }}",
+              "type": "string"
+            },
+            {
+              "id": "steps",
+              "name": "steps",
+              "value": "={{ $json.steps }}",
+              "type": "number"
+            },
+            {
+              "id": "score",
+              "name": "final_score",
+              "value": "={{ $json.evaluation.final_score }}",
+              "type": "number"
+            },
+            {
+              "id": "det",
+              "name": "deterministic_score",
+              "value": "={{ $json.evaluation.deterministic_score }}",
+              "type": "number"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "={{ $json.evaluation.status }}",
+              "type": "string"
+            },
+            {
+              "id": "evaluation",
+              "name": "evaluation",
+              "value": "={{ $json.evaluation }}",
+              "type": "object"
+            },
+            {
+              "id": "trace",
+              "name": "trace",
+              "value": "={{ $json.trace }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "result-interactive",
+      "name": "Interactive Benchmark Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        540,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Start Interactive Benchmark": {
+      "main": [
+        [
+          {
+            "node": "Run Interactive Agent Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Interactive Agent Loop": {
+      "main": [
+        [
+          {
+            "node": "Interactive Benchmark Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
